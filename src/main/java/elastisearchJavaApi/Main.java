@@ -3,19 +3,19 @@ package elastisearchJavaApi;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.common.settings.Settings;
 
 import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
-import static elastisearchJavaApi.CountService.getBoolQueryCount;
-import static elastisearchJavaApi.CountService.getMatchAllQueryCount;
 import static elastisearchJavaApi.CountService.getPhraseQueryCount;
 import static elastisearchJavaApi.DataService.getBoolQueryData;
 import static elastisearchJavaApi.DataService.getMatchAllQueryData;
 import static elastisearchJavaApi.DataService.getPhraseQueryData;
 import static elastisearchJavaApi.IngestService.ingest;
 import static elastisearchJavaApi.Utilities.printS;
+import static org.elasticsearch.common.xcontent.XContentFactory.jsonBuilder;
 import static org.elasticsearch.index.query.QueryBuilders.matchQuery;
 
 public class Main {
@@ -44,32 +44,33 @@ public class Main {
 
 
     private static void insertSesionInitials() {
-        String sesionID = "";
-        String date = "";
-        String asignatura = "Asign";
-        String contenido = "contenido";
-        String descripcion = "decripcion";
+        StringBuilder sesionID;
+        StringBuilder date;
+        StringBuilder asignatura;
+        StringBuilder contenido;
+        StringBuilder descripcion;
 
         int asigID = 0;
         String json = "";
 
         for (int i = 0; i < 30; i++) {
-            sesionID = String.valueOf(i+1);
-            date = LocalDate.now().plusDays(i+1).format(DateTimeFormatter.BASIC_ISO_DATE);
+            sesionID = new StringBuilder(String.valueOf(i+1));
+            date = new StringBuilder(LocalDate.now().plusDays(i+1)
+                    .format(DateTimeFormatter.BASIC_ISO_DATE));
             ++asigID;
             if (asigID > 5) asigID = 1;
-            asignatura += asigID;
-            contenido += asigID;
-            descripcion += asigID;
+            asignatura = new StringBuilder("Asignatura"+asigID);
+            contenido = new StringBuilder("Contenido"+asigID);
+            descripcion = new StringBuilder("Descripcion"+asigID);
             printS("\nIngestService response::: " + ingest("dia", generarJson(sesionID, date,
                     asignatura, contenido, descripcion)));
         }
 
     }
 
-    private static String generarJson(String sesionID, String date,
-                                      String asignatura, String contenido,
-                                      String descripcion) {
+    private static String generarJson(StringBuilder sesionID, StringBuilder date,
+                                      StringBuilder asignatura, StringBuilder contenido,
+                                      StringBuilder descripcion) {
         return "{" +
                 "\"sesionID\":\""+sesionID+"\"," +
                 "\"date\":\""+date+"\"," +
@@ -104,20 +105,37 @@ public class Main {
         printS("\ngetPhraseQueryCount from ES::: " + getPhraseQueryCount());
     }
 
+
+    /**
+     * create and config indice
+     * @param indexName
+     */
+    private static void createIndex(String indexName) throws IOException {
+
+        client.admin().indices().preparePutMapping(indexName)
+                .setType("_default")
+                .setSource(jsonBuilder()
+                        .startObject()
+                        .field("index_analyzer", "autocomplete")
+                        .field("search_analyzer", "spanish")
+                        .endObject());
+    }
+
     public static void main(String[] args) throws IOException {
 
         initVariables();
 
+//        createIndex("sesion");
+
 //        deleteIndex(client);
 //        insertSesionInitials();
 
-        count();
+//        count();
 //        data();
 //        deleted();
+        System.out.println("matchQuery : " + matchQuery("Asignatura", "Asignatura1"));
 
         client.close();
-
-        matchQuery("Asignatura", "Asignatura1");
 
     }
 
