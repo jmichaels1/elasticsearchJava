@@ -1,4 +1,4 @@
-package elastisearchJavaApi;
+package elastic;
 
 import static org.junit.Assert.assertTrue;
 
