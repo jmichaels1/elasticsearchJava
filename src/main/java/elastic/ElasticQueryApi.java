@@ -30,7 +30,11 @@ public class ElasticQueryApi {
     private static String operator_query;
     private static String field_query;
     private static ArrayList<String> values_query;
+    private static int numProximity = 0;
     private static StringBuilder sb;
+
+    private static int numQuery = 0;
+    private static String s_aux;
 
 
     /**
@@ -57,12 +61,46 @@ public class ElasticQueryApi {
                 .toString();
     }
 
+
+    /**
+     * busqueda especfica
+     * por el campo
+     * @param indice
+     * @param field
+     * @param value
+     */
+    public static ArrayList<String> searchSpecific(String indice, String field,
+                                                   String value){
+        numQuery++;
+        aList = new ArrayList<>();
+        values_query = new ArrayList<>();
+        field_query = field;
+        values_query.add(value);
+        query = matchPhraseQuery(field, value);
+        System.out.printf("\n****** %d.- search Info : - operator : equals, - field : %s, - searchValues : %s ***\n",
+                numQuery, field_query, values_query.toString());
+        System.out.printf("\nString_query exists : %s, \n\nMasters Result : \n", query);
+        hits = client
+                .prepareSearch(indice)
+                .setQuery(query)
+                .setSize(10)
+                .execute()
+                .actionGet()
+                .getHits()
+                .getHits();
+        for (SearchHit hit : hits) aList.add(hit.getSourceAsString());
+        return aList;
+    }
+
+
     /**
      * count all data
      *
      * @param indiceName
      */
     public static void countAllDocuments(String indiceName) {
+        ++numQuery;
+        System.out.printf("\n****** %d.- search Info : - operator : count - AllDocuments***\n", numQuery);
         query = matchAllQuery();
         count = client
                 .prepareSearch(indiceName)
@@ -80,12 +118,18 @@ public class ElasticQueryApi {
      *
      * @return
      */
-    public static void countValueSearch(String indiceName, String propertyName,
+    public static void countValueSearch(String indice, String field,
                                         String valor) {
         long count = 0;
-        query = matchPhraseQuery(propertyName, valor);
+        ++numQuery;
+        field_query = field;
+        values_query = new ArrayList<>();
+        values_query.add(valor);
+        System.out.printf("\n****** %d.- search Info : - operator : count-SearchValue, - field : %s, - searchValues : %s ***\n",
+                numQuery, field_query, values_query.toString());
+        query = matchPhraseQuery(field_query, values_query.get(0));
         count = client
-                .prepareSearch(indiceName)
+                .prepareSearch(indice)
                 .setQuery(query)
                 .setSize(0)
                 .execute()
@@ -100,10 +144,17 @@ public class ElasticQueryApi {
      *
      * @return
      */
-    public static List<String> searchMasterFromQuerywithPhrase(String indiceName, String propertyName,
-                                                               String phrase) {
-        query = matchPhraseQuery(propertyName, phrase);
+    public static List<String> searchMasterFromQuerywithPhrase(String indiceName, String field,
+                                                               String value) {
+        ++numQuery;
+        field_query = field;
+        values_query = new ArrayList<>();
+        values_query.add(value);
+        query = matchPhraseQuery(field_query, values_query.get(0));
         aList = new ArrayList<>();
+        System.out.printf("\n****** %d.- search Info : - operator : match phrase, - field : %s, - searchValues : %s ***\n",
+                numQuery, field_query, values_query.toString());
+        System.out.printf("\nString_query exists : %s, \n\nMasters Result : \n", query);
         hits = client
                 .prepareSearch(indiceName)
                 .setQuery(query)
@@ -121,11 +172,14 @@ public class ElasticQueryApi {
      */
     public static List<String> searhMasterWithQuery(String operator, String field,
                                                     ArrayList<String> aValues) {
+        numQuery++;
         aList = new ArrayList<>();
         operator_query = operator;
         field_query = field;
         values_query = aValues;
-        query = queryStringQuery(generarQuery());//        query = queryStringQuery("_exists_:descripcion");
+        query = queryStringQuery(generarQuery());
+        printSearchQuery();
+        System.out.printf("\nString_query exists : %s, \n\nMasters Result : \n", sb);
         hits = client
                 .prepareSearch()
                 .setIndices("master")
@@ -140,29 +194,134 @@ public class ElasticQueryApi {
     }
 
     /**
+     * FuzzinessSearch
+     * @param operator
+     * @param indice
+     * @param field
+     * @param value
+     * @return
+     */
+    public static ArrayList<String> FuzzinessSearch(String operator, String indice, String field,
+                                                    String value){
+        numQuery++;
+        aList = new ArrayList<>();
+        operator_query = operator;
+        values_query = new ArrayList<>();
+        field_query = field;
+        values_query.add(value);
+        query = queryStringQuery(generarQuery());
+        System.out.printf("\n****** %d.- search Info : - operator : %s, - field : %s, - searchValues : %s ***\n",
+                numQuery, operator_query, field_query, values_query.toString());
+        System.out.printf("\nString_query exists : %s, \n\nMasters Result : \n", sb);
+        hits = client
+                .prepareSearch(indice)
+                .setQuery(query)
+                .execute()
+                .actionGet()
+                .getHits()
+                .getHits();
+        for (SearchHit hit : hits) aList.add(hit.getSourceAsString());
+        return aList;
+    }
+
+    /**
+     * Proximity search
+     * @param operator
+     * @param indice
+     * @param field
+     * @param aValue
+     * @return
+     */
+    public static ArrayList<String> ProximitySearch(String operator, String indice, String field,
+                                                    ArrayList<String> aValue, int numProx){
+        numQuery++;
+        aList = new ArrayList<>();
+        operator_query = operator;
+        values_query = aValue;
+        field_query = field;
+        numProximity = numProx;
+        query = queryStringQuery(generarQuery());
+        System.out.printf("\n****** %d.- search Info : - operator : %s, - field : %s, - searchValues : %s ***\n",
+                numQuery, operator_query, field_query, values_query.toString());
+        System.out.printf("\nString_query exists : %s, \n\nMasters Result : \n", sb);
+        hits = client
+                .prepareSearch(indice)
+                .setQuery(query)
+                .execute()
+                .actionGet()
+                .getHits()
+                .getHits();
+        for (SearchHit hit : hits) aList.add(hit.getSourceAsString());
+        return aList;
+    }
+
+    /**
+     * print info
+     * of the query
+     */
+    private static void printSearchQuery() {
+        if (!operator_query.equalsIgnoreCase("exists"))
+            System.out.printf("\n****** %d.- search Info : - operator : %s, - field : %s, - searchValues : %s ***\n",
+                numQuery, operator_query, field_query, values_query.toString());
+        else System.out.printf("\n ****** %d.- search Info : - operator : %s, - field : %s***\n",
+                numQuery, operator_query, field_query);
+    }
+
+    /**
      * generar Query
      * @return
      */
     private static String generarQuery() {
-        String s = "";
+        s_aux = "";
         switch (operator_query){
             case "AND":
-                s = genQueryAND();
+                s_aux = genQueryAND();
                 break;
             case "OR":
-                s = genQueryOR();
+                s_aux = genQueryOR();
                 break;
             case "exists" :
-                s = genQueryExist();
+                s_aux = genQueryExist();
                 break;
+            case "fuzziness" :
+                s_aux = genQueryFuzziness();
+                break;
+            case "proximity" :
+                s_aux = genProximity();
         }
-        return s;
+        return s_aux;
     }
 
+    /**
+     * genProximity
+     * @return
+     */
+    private static String genProximity() {
+        sb = new StringBuilder("(" + field_query + "\"");
+        for (String s :
+                values_query) {
+            sb.append(s + " ");
+        }
+        sb.append("\"~"+numProximity+")");
+        return sb.toString();
+    }
+
+    /**
+     * genQueryFuzziness
+     * @return
+     */
+    private static String genQueryFuzziness() {
+        sb = new StringBuilder("(" + field_query + " " + values_query.get(0) + "~)");
+        return sb. toString();
+    }
+
+    /**
+     * genQueryExist
+     * @return
+     */
     private static String genQueryExist() {
         sb = new StringBuilder("( _exists_:");
         sb.append(field_query + ")");
-        System.out.println("String_query exists : " + sb);
         return sb.toString();
     }
 
@@ -177,7 +336,6 @@ public class ElasticQueryApi {
             else
                 sb.append(values_query.get(i) + ")");
         }
-        System.out.println("String_query or : " + sb);
         return  sb.toString();
     }
 
@@ -192,8 +350,9 @@ public class ElasticQueryApi {
             else
                 sb.append(values_query.get(i) + ")");
         }
-        System.out.println("String_query and : " + sb);
         return  sb.toString();
     }
+
+
 
 }

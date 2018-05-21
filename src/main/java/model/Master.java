@@ -21,6 +21,11 @@ public class Master {
         this.descripcion = descripcion;
     }
 
+    /**
+     * Método constructor 2
+     * @param masterID
+     * @param master
+     */
     public Master(String masterID, String master) {
         this.masterID = masterID;
         this.master = master;
