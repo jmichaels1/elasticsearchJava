@@ -18,7 +18,7 @@ import static org.elasticsearch.index.query.QueryBuilders.queryStringQuery;
 /**
  * Created by Michael
  */
-public class ElasticQueryApi {
+public class ElasticJavaQueryApi {
 
     private static QueryBuilder query;
     private static long count;

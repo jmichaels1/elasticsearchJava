@@ -1,7 +1,7 @@
 import java.io.IOException;
 import java.util.ArrayList;
 
-import static elastic.ElasticQueryApi.*;
+import static elastic.ElasticJavaQueryApi.*;
 import static elastic.ConfigElasticSearch.*;
 import static elastic.Utilities.printS;
 
